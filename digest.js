@@ -12,6 +12,7 @@ const nodemailer = require("nodemailer");
 
 const CONFIG = {
   recipientEmail: "zubin.mistry@housing.com",
+  ccRecipients:   ["praveen.sharma@housing.com","aditya.raj1@housing.com","charu.kulshrestha@housing.com","aditya.mehandiratta@housing.com"],
   fallbackEmail:  "mrzubinmistry@gmail.com",
   senderEmail:    process.env.GMAIL_USER,
   senderPassword: process.env.GMAIL_APP_PASSWORD,
@@ -362,7 +363,7 @@ async function sendEmail(html, digest) {
 
   for (const to of [CONFIG.recipientEmail, CONFIG.fallbackEmail]) {
     try {
-      await transporter.sendMail({ from: `Real Estate Radar <${CONFIG.senderEmail}>`, to, subject, html });
+      await transporter.sendMail({ from: `Real Estate Radar <${CONFIG.senderEmail}>`, to, cc: CONFIG.ccRecipients.join(","), subject, html });
       console.log(`Email sent to ${to}`);
       return;
     } catch (err) {
