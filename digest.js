@@ -13,9 +13,9 @@ const nodemailer = require("nodemailer");
 const CONFIG = {
   recipientEmail: "zubin.mistry@housing.com",
   ccRecipients:   ["praveen.sharma@housing.com","aditya.raj1@housing.com","charu.kulshrestha@housing.com","aditya.mehandiratta@housing.com"],
-  fallbackEmail:  "mrzubinmistry@gmail.com",
-  senderEmail:    process.env.GMAIL_USER,
-  senderPassword: process.env.GMAIL_APP_PASSWORD,
+
+  senderEmail:    process.env.WORK_EMAIL_USER,
+  senderPassword: process.env.WORK_EMAIL_APP_PASSWORD,
   groqApiKey:     process.env.GROQ_API_KEY,
   serperApiKey:   process.env.SERPER_API_KEY,
 };
@@ -358,19 +358,19 @@ async function sendEmail(html, digest) {
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
+
+
     auth: { user: CONFIG.senderEmail, pass: CONFIG.senderPassword },
   });
 
-  for (const to of [CONFIG.recipientEmail, CONFIG.fallbackEmail]) {
-    try {
-      await transporter.sendMail({ from: `Real Estate Radar <${CONFIG.senderEmail}>`, to, cc: CONFIG.ccRecipients.join(","), subject, html });
-      console.log(`Email sent to ${to}`);
-      return;
-    } catch (err) {
-      console.error(`Failed to send to ${to}: ${err.message}. Trying next...`);
-    }
-  }
-  throw new Error("All email recipients failed.");
+  await transporter.sendMail({
+    from: `Real Estate Radar <${CONFIG.senderEmail}>`,
+    to:   CONFIG.recipientEmail,
+    cc:   CONFIG.ccRecipients.join(","),
+    subject,
+    html,
+  });
+  console.log(`Email sent from ${CONFIG.senderEmail} to ${CONFIG.recipientEmail} + ${CONFIG.ccRecipients.length} CC recipients`);
 }
 
 // ─── UTILITIES ────────────────────────────────────────────────────────────────
