@@ -161,7 +161,7 @@ Rules:
 - Return ONLY valid JSON, no preamble, no markdown`;
 
   // Gemini 1.5 Flash — free tier
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.geminiApiKey}`;
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.geminiApiKey}`;
 
   const res = await fetch(geminiUrl, {
     method: "POST",
