@@ -5,7 +5,6 @@ on:
     # 02:30 UTC = 08:00 AM IST every day
     - cron: "30 2 * * *"
   workflow_dispatch:
-    # This button lets you trigger it manually from GitHub for testing
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -21,6 +20,8 @@ jobs:
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
+        with:
+          node-version: "24"
 
       - name: Install dependencies
         run: npm install
