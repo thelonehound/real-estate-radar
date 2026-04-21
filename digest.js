@@ -2,7 +2,7 @@
  * Real Estate Radar — Daily Digest Engine (FREE STACK)
  * Scheduler : GitHub Actions (free)
  * Search    : Serper (free — 2,500 queries/month)
- * AI        : Google Gemini 1.5 Flash (free — 1,500 req/day)
+ * AI        : Groq — Llama 3.3 70B (free, no billing needed)
  * Email     : Gmail SMTP via Nodemailer (free)
  *
  * For Zubin Mistry, REA India
@@ -15,35 +15,35 @@ const CONFIG = {
   fallbackEmail:  "mrzubinmistry@gmail.com",
   senderEmail:    process.env.GMAIL_USER,
   senderPassword: process.env.GMAIL_APP_PASSWORD,
-  geminiApiKey:   process.env.GEMINI_API_KEY,
+  groqApiKey:     process.env.GROQ_API_KEY,
   serperApiKey:   process.env.SERPER_API_KEY,
 };
 
 // ─── SEARCH BUCKETS ──────────────────────────────────────────────────────────
 const SEARCH_BUCKETS = [
-  { label: "India Residential Market",      queries: ["India residential real estate news today", "housing market India latest updates", "property prices India 2025"] },
-  { label: "Indian Developers",             queries: ["DLF Godrej Properties Lodha Prestige news today", "Indian real estate developer launches 2025", "top developer quarterly results India realty"] },
-  { label: "Indian Brokers & PropTech",     queries: ["NoBroker news update 2025", "MagicBricks 99acres Housing.com update", "Indian proptech startup news today"] },
-  { label: "Tier 1 Cities",                 queries: ["Mumbai real estate news today", "Delhi NCR Gurgaon property market news", "Bengaluru Hyderabad real estate latest"] },
-  { label: "Tier 2 Cities",                 queries: ["Pune Ahmedabad Jaipur real estate news", "Tier 2 city property market India 2025", "Indore Surat Lucknow real estate update"] },
-  { label: "New Projects & Launches",       queries: ["new residential project launch India today", "luxury housing launch India 2025", "affordable housing project launch India"] },
-  { label: "RERA & Regulation",             queries: ["RERA update news India 2025", "real estate regulation India latest", "RERA penalty order ruling news"] },
-  { label: "Government Policy & Budget",    queries: ["India government housing policy update 2025", "budget real estate sector India announcement", "PMAY affordable housing scheme update"] },
-  { label: "RBI & Interest Rates",          queries: ["RBI repo rate impact housing loan 2025", "home loan interest rate India news", "RBI monetary policy real estate impact"] },
-  { label: "Land Acquisition & Zoning",     queries: ["land acquisition news India realty", "FSI change zoning notification India 2025"] },
-  { label: "PropTech Funding",              queries: ["India proptech funding investment 2025", "real estate startup funding India today", "proptech venture capital deal India"] },
-  { label: "REITs & Capital Markets",       queries: ["India REIT news 2025", "Embassy Mindspace Nexus REIT update", "real estate private equity India news"] },
-  { label: "FDI & Institutional Investment",queries: ["FDI real estate India 2025", "institutional investor real estate India news"] },
-  { label: "REA Group",                     queries: ["REA Group news quarterly results 2025", "REA Group realestate.com.au update"] },
-  { label: "Zillow & US Market",            queries: ["Zillow news quarterly results 2025", "US housing market update today", "Opendoor Redfin news 2025"] },
-  { label: "Global Portals",               queries: ["PropertyFinder Dubizzle news 2025", "Rightmove Zoopla UK property news"] },
-  { label: "Global Real Estate Trends",     queries: ["global real estate market outlook 2025", "Asia Pacific property market news"] },
-  { label: "Macro Headwinds & Tailwinds",   queries: ["real estate sector headwinds tailwinds India 2025", "inflation impact housing market India"] },
-  { label: "Construction & Materials",      queries: ["cement steel construction cost India 2025", "infrastructure development impact real estate"] },
-  { label: "Rental Market",                 queries: ["rental market India news 2025", "co-living managed rental India update"] },
-  { label: "Commercial Real Estate",        queries: ["India office space leasing news 2025", "commercial real estate India update today"] },
-  { label: "NoBroker Deep Dive",            queries: ["NoBroker update strategy news 2025", "NoBroker IPO funding growth news"] },
-  { label: "MagicBricks & 99Acres",         queries: ["MagicBricks news update 2025", "99acres PropTiger news update 2025"] },
+  { label: "India Residential Market",       queries: ["India residential real estate news today", "housing market India latest updates", "property prices India 2025"] },
+  { label: "Indian Developers",              queries: ["DLF Godrej Properties Lodha Prestige news today", "Indian real estate developer launches 2025", "top developer quarterly results India realty"] },
+  { label: "Indian Brokers & PropTech",      queries: ["NoBroker news update 2025", "MagicBricks 99acres Housing.com update", "Indian proptech startup news today"] },
+  { label: "Tier 1 Cities",                  queries: ["Mumbai real estate news today", "Delhi NCR Gurgaon property market news", "Bengaluru Hyderabad real estate latest"] },
+  { label: "Tier 2 Cities",                  queries: ["Pune Ahmedabad Jaipur real estate news", "Tier 2 city property market India 2025", "Indore Surat Lucknow real estate update"] },
+  { label: "New Projects & Launches",        queries: ["new residential project launch India today", "luxury housing launch India 2025", "affordable housing project launch India"] },
+  { label: "RERA & Regulation",              queries: ["RERA update news India 2025", "real estate regulation India latest", "RERA penalty order ruling news"] },
+  { label: "Government Policy & Budget",     queries: ["India government housing policy update 2025", "budget real estate sector India announcement", "PMAY affordable housing scheme update"] },
+  { label: "RBI & Interest Rates",           queries: ["RBI repo rate impact housing loan 2025", "home loan interest rate India news", "RBI monetary policy real estate impact"] },
+  { label: "Land Acquisition & Zoning",      queries: ["land acquisition news India realty", "FSI change zoning notification India 2025"] },
+  { label: "PropTech Funding",               queries: ["India proptech funding investment 2025", "real estate startup funding India today", "proptech venture capital deal India"] },
+  { label: "REITs & Capital Markets",        queries: ["India REIT news 2025", "Embassy Mindspace Nexus REIT update", "real estate private equity India news"] },
+  { label: "FDI & Institutional Investment", queries: ["FDI real estate India 2025", "institutional investor real estate India news"] },
+  { label: "REA Group",                      queries: ["REA Group news quarterly results 2025", "REA Group realestate.com.au update"] },
+  { label: "Zillow & US Market",             queries: ["Zillow news quarterly results 2025", "US housing market update today", "Opendoor Redfin news 2025"] },
+  { label: "Global Portals",                 queries: ["PropertyFinder Dubizzle news 2025", "Rightmove Zoopla UK property news"] },
+  { label: "Global Real Estate Trends",      queries: ["global real estate market outlook 2025", "Asia Pacific property market news"] },
+  { label: "Macro Headwinds & Tailwinds",    queries: ["real estate sector headwinds tailwinds India 2025", "inflation impact housing market India"] },
+  { label: "Construction & Materials",       queries: ["cement steel construction cost India 2025", "infrastructure development impact real estate"] },
+  { label: "Rental Market",                  queries: ["rental market India news 2025", "co-living managed rental India update"] },
+  { label: "Commercial Real Estate",         queries: ["India office space leasing news 2025", "commercial real estate India update today"] },
+  { label: "NoBroker Deep Dive",             queries: ["NoBroker update strategy news 2025", "NoBroker IPO funding growth news"] },
+  { label: "MagicBricks & 99Acres",          queries: ["MagicBricks news update 2025", "99acres PropTiger news update 2025"] },
 ];
 
 // ─── SERPER SEARCH ───────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ async function sweepAllBuckets() {
   return results;
 }
 
-// ─── GEMINI SYNTHESIS ────────────────────────────────────────────────────────
+// ─── GROQ SYNTHESIS ──────────────────────────────────────────────────────────
 async function synthesizeDigest(rawResults) {
   const inputData = Object.entries(rawResults).map(([label, items]) => ({
     section:  label,
@@ -160,32 +160,35 @@ Rules:
 - Preserve all URLs exactly as received
 - Return ONLY valid JSON, no preamble, no markdown`;
 
-  // Gemini 1.5 Flash — free tier
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.geminiApiKey}`;
-
-  const res = await fetch(geminiUrl, {
+  // Groq — Llama 3.3 70B (free, no billing needed)
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${CONFIG.groqApiKey}`,
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 8192,
+      messages: [{ role: "user", content: prompt }],
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${err}`);
+    throw new Error(`Groq API error ${res.status}: ${err}`);
   }
 
-  const data = await res.json();
-  const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const data  = await res.json();
+  const raw   = data.choices?.[0]?.message?.content || "";
   const clean = raw.replace(/```json|```/g, "").trim();
 
   try {
     return JSON.parse(clean);
   } catch {
     console.error("JSON parse failed, raw output:", clean.substring(0, 500));
-    throw new Error("Gemini returned invalid JSON");
+    throw new Error("Groq returned invalid JSON");
   }
 }
 
@@ -259,7 +262,7 @@ function buildEmailHTML(digest) {
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Real Estate Radar — ${today}</title></head>
+<title>Real Estate Radar</title></head>
 <body style="margin:0;padding:0;background:#F5F5F5;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#F5F5F5">
 <tr><td align="center" style="padding:24px 16px;">
@@ -317,7 +320,7 @@ function buildEmailHTML(digest) {
   </td></tr>
 
   <tr><td style="background:#FAFAFA;border-top:1px solid #EEE;padding:16px 32px;text-align:center;">
-    <p style="margin:0;font-size:11px;color:#BDBDBD;font-family:Arial,sans-serif;">Real Estate Radar &middot; For Zubin Mistry, REA India &middot; Powered by Gemini + Serper</p>
+    <p style="margin:0;font-size:11px;color:#BDBDBD;font-family:Arial,sans-serif;">Real Estate Radar &middot; For Zubin Mistry, REA India &middot; Powered by Groq + Serper</p>
   </td></tr>
 
 </table>
@@ -363,7 +366,7 @@ async function run() {
   const total = Object.values(rawResults).reduce((s, a) => s + a.length, 0);
   console.log(`\nTotal articles collected: ${total}`);
 
-  console.log("\nSynthesizing with Gemini...");
+  console.log("\nSynthesizing with Groq...");
   const digest = await synthesizeDigest(rawResults);
   console.log(`  Top stories: ${digest.top_stories?.length || 0}`);
   console.log(`  Sections:    ${digest.section_digests?.length || 0}`);
