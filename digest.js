@@ -137,7 +137,7 @@ Return this exact structure:
 Rules: section items max 2 per section, skip empty sections, preserve URLs exactly. Set has_alert true only for urgent RERA/RBI/budget news.`;
 
   // Wait 6 seconds between batches to respect TPM limits
-  await sleep(6000);
+  await sleep(65000); // 65s — full TPM window reset between batches
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
