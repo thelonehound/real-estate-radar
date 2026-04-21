@@ -2,7 +2,7 @@
  * Real Estate Radar — Daily Digest Engine (FREE STACK)
  * Scheduler : GitHub Actions (free)
  * Search    : Serper (free — 2,500 queries/month)
- * AI        : Groq — Llama 3.3 70B (free, no billing needed)
+ * AI        : Groq — Llama 3.3 70B (free, batched to stay under 12k TPM)
  * Email     : Gmail SMTP via Nodemailer (free)
  *
  * For Zubin Mistry, REA India
@@ -19,31 +19,30 @@ const CONFIG = {
   serperApiKey:   process.env.SERPER_API_KEY,
 };
 
-// ─── SEARCH BUCKETS ──────────────────────────────────────────────────────────
+// ─── SEARCH BUCKETS (trimmed to 2 queries each to reduce volume) ─────────────
 const SEARCH_BUCKETS = [
-  { label: "India Residential Market",       queries: ["India residential real estate news today", "housing market India latest updates", "property prices India 2025"] },
-  { label: "Indian Developers",              queries: ["DLF Godrej Properties Lodha Prestige news today", "Indian real estate developer launches 2025", "top developer quarterly results India realty"] },
-  { label: "Indian Brokers & PropTech",      queries: ["NoBroker news update 2025", "MagicBricks 99acres Housing.com update", "Indian proptech startup news today"] },
-  { label: "Tier 1 Cities",                  queries: ["Mumbai real estate news today", "Delhi NCR Gurgaon property market news", "Bengaluru Hyderabad real estate latest"] },
-  { label: "Tier 2 Cities",                  queries: ["Pune Ahmedabad Jaipur real estate news", "Tier 2 city property market India 2025", "Indore Surat Lucknow real estate update"] },
-  { label: "New Projects & Launches",        queries: ["new residential project launch India today", "luxury housing launch India 2025", "affordable housing project launch India"] },
-  { label: "RERA & Regulation",              queries: ["RERA update news India 2025", "real estate regulation India latest", "RERA penalty order ruling news"] },
-  { label: "Government Policy & Budget",     queries: ["India government housing policy update 2025", "budget real estate sector India announcement", "PMAY affordable housing scheme update"] },
-  { label: "RBI & Interest Rates",           queries: ["RBI repo rate impact housing loan 2025", "home loan interest rate India news", "RBI monetary policy real estate impact"] },
-  { label: "Land Acquisition & Zoning",      queries: ["land acquisition news India realty", "FSI change zoning notification India 2025"] },
-  { label: "PropTech Funding",               queries: ["India proptech funding investment 2025", "real estate startup funding India today", "proptech venture capital deal India"] },
-  { label: "REITs & Capital Markets",        queries: ["India REIT news 2025", "Embassy Mindspace Nexus REIT update", "real estate private equity India news"] },
-  { label: "FDI & Institutional Investment", queries: ["FDI real estate India 2025", "institutional investor real estate India news"] },
-  { label: "REA Group",                      queries: ["REA Group news quarterly results 2025", "REA Group realestate.com.au update"] },
-  { label: "Zillow & US Market",             queries: ["Zillow news quarterly results 2025", "US housing market update today", "Opendoor Redfin news 2025"] },
-  { label: "Global Portals",                 queries: ["PropertyFinder Dubizzle news 2025", "Rightmove Zoopla UK property news"] },
+  { label: "India Residential Market",       queries: ["India residential real estate news today", "housing market India latest 2025"] },
+  { label: "Indian Developers",              queries: ["DLF Godrej Lodha Prestige developer news today", "Indian real estate developer quarterly results 2025"] },
+  { label: "Indian Brokers & PropTech",      queries: ["NoBroker MagicBricks 99acres news update 2025", "Indian proptech startup news today"] },
+  { label: "Tier 1 Cities",                  queries: ["Mumbai Delhi Bengaluru real estate news today", "Hyderabad Chennai property market news 2025"] },
+  { label: "Tier 2 Cities",                  queries: ["Pune Ahmedabad Jaipur real estate news 2025", "Indore Surat Lucknow property market update"] },
+  { label: "New Projects & Launches",        queries: ["new residential project launch India today", "luxury affordable housing launch India 2025"] },
+  { label: "RERA & Regulation",              queries: ["RERA update ruling news India 2025", "real estate regulation India latest"] },
+  { label: "Government Policy & Budget",     queries: ["India housing policy budget announcement 2025", "PMAY affordable housing scheme update"] },
+  { label: "RBI & Interest Rates",           queries: ["RBI repo rate home loan impact 2025", "home loan interest rate India news"] },
+  { label: "PropTech Funding",               queries: ["India proptech real estate startup funding 2025", "proptech venture capital deal India"] },
+  { label: "REITs & Capital Markets",        queries: ["India REIT Embassy Mindspace news 2025", "real estate private equity FDI India"] },
+  { label: "REA Group & Global Portals",     queries: ["REA Group quarterly results news 2025", "PropertyFinder Rightmove Zoopla Zillow news 2025"] },
   { label: "Global Real Estate Trends",      queries: ["global real estate market outlook 2025", "Asia Pacific property market news"] },
-  { label: "Macro Headwinds & Tailwinds",    queries: ["real estate sector headwinds tailwinds India 2025", "inflation impact housing market India"] },
-  { label: "Construction & Materials",       queries: ["cement steel construction cost India 2025", "infrastructure development impact real estate"] },
-  { label: "Rental Market",                  queries: ["rental market India news 2025", "co-living managed rental India update"] },
-  { label: "Commercial Real Estate",         queries: ["India office space leasing news 2025", "commercial real estate India update today"] },
-  { label: "NoBroker Deep Dive",             queries: ["NoBroker update strategy news 2025", "NoBroker IPO funding growth news"] },
-  { label: "MagicBricks & 99Acres",          queries: ["MagicBricks news update 2025", "99acres PropTiger news update 2025"] },
+  { label: "Macro & Construction",           queries: ["real estate headwinds tailwinds India 2025", "cement steel construction cost India real estate"] },
+  { label: "Rental & Commercial",            queries: ["rental co-living market India news 2025", "India office space commercial real estate 2025"] },
+];
+
+// ─── BATCH SPLITS (5 buckets each → ~8-9k tokens per Groq call) ─────────────
+const BATCHES = [
+  SEARCH_BUCKETS.slice(0, 5),   // Indian market core
+  SEARCH_BUCKETS.slice(5, 10),  // Launches, policy, regulation
+  SEARCH_BUCKETS.slice(10, 15), // Capital, global, macro
 ];
 
 // ─── SERPER SEARCH ───────────────────────────────────────────────────────────
@@ -52,7 +51,7 @@ async function searchWeb(query) {
     const res = await fetch("https://google.serper.dev/news", {
       method: "POST",
       headers: { "X-API-KEY": CONFIG.serperApiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ q: query, num: 5, gl: "in", hl: "en" }),
+      body: JSON.stringify({ q: query, num: 4, gl: "in", hl: "en" }),
     });
     const data = await res.json();
     return (data.news || []).map((item) => ({
@@ -76,7 +75,7 @@ async function sweepAllBuckets() {
     for (const query of bucket.queries) {
       const items = await searchWeb(query);
       bucketResults.push(...items);
-      await sleep(350);
+      await sleep(300);
     }
     const seen = new Set();
     results[bucket.label] = bucketResults.filter((item) => {
@@ -89,78 +88,57 @@ async function sweepAllBuckets() {
   return results;
 }
 
-// ─── GROQ SYNTHESIS ──────────────────────────────────────────────────────────
-async function synthesizeDigest(rawResults) {
-  const inputData = Object.entries(rawResults).map(([label, items]) => ({
-    section:  label,
-    articles: items.slice(0, 7).map((i) => ({
-      title:   i.title,
-      snippet: i.snippet,
-      source:  i.source,
-      date:    i.date,
-      url:     i.link,
+// ─── GROQ CALL (single batch) ────────────────────────────────────────────────
+async function callGroq(inputData, today, isFirstBatch) {
+  // Trim each article to title + snippet only (no full content) to save tokens
+  const trimmed = inputData.map((sec) => ({
+    section:  sec.section,
+    articles: sec.articles.slice(0, 5).map((a) => ({
+      title:   a.title,
+      snippet: (a.snippet || "").substring(0, 120), // hard cap per snippet
+      source:  a.source,
+      url:     a.url,
     })),
   }));
 
-  const today = new Date().toLocaleDateString("en-IN", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Kolkata",
-  });
+  const prompt = isFirstBatch
+    ? `You are a real estate intelligence analyst. Today is ${today}.
 
-  const prompt = `You are a senior real estate intelligence analyst preparing a daily briefing for Zubin Mistry, who works in the CEO office at REA India (Housing.com) and is deeply embedded in India's real estate sector strategy.
+Analyze this news data and return ONLY valid JSON, no markdown, no preamble:
+${JSON.stringify(trimmed)}
 
-Today is ${today}.
-
-Here is the raw search data collected from across the web today:
-${JSON.stringify(inputData, null, 2)}
-
-Your task: Produce a clean, high-signal daily digest in JSON format.
-
-Return ONLY this JSON structure, nothing else, no markdown fences:
+Return this exact structure:
 {
-  "date": "${today}",
-  "headline_summary": "3-sentence overview of the single most important development today across Indian RE",
+  "headline_summary": "2-sentence overview of the most important Indian RE development today",
   "top_stories": [
-    {
-      "headline": "...",
-      "summary": "2-3 sentences",
-      "why_it_matters": "1 sentence relevance to REA India / Housing.com",
-      "source": "...",
-      "url": "...",
-      "category": "..."
-    }
+    {"headline":"...","summary":"2 sentences","why_it_matters":"1 sentence for REA India/Housing.com","source":"...","url":"...","category":"..."}
   ],
   "section_digests": [
-    {
-      "section": "...",
-      "summary": "2-3 sentence synthesis",
-      "items": [
-        { "title": "...", "summary": "1 sentence", "source": "...", "url": "..." }
-      ]
-    }
+    {"section":"...","summary":"1-2 sentences","items":[{"title":"...","summary":"1 sentence","source":"...","url":"..."}]}
   ],
-  "market_pulse": {
-    "tailwinds": ["positive macro factors from today's news"],
-    "headwinds": ["negative macro factors from today's news"]
-  },
-  "competitor_watch": [
-    { "company": "...", "update": "1-2 sentences", "url": "..." }
-  ],
-  "global_radar": [
-    { "player": "...", "update": "1-2 sentences", "url": "..." }
-  ],
-  "policy_alert": {
-    "has_alert": false,
-    "items": []
-  }
+  "market_pulse": {"tailwinds":["..."],"headwinds":["..."]},
+  "competitor_watch": [{"company":"...","update":"1 sentence","url":"..."}]
 }
+Rules: top_stories max 6 items, section items max 2 per section, skip empty sections, preserve URLs exactly.`
 
-Rules:
-- top_stories: 8-12 items, highest signal only
-- section_digests: 2-4 items per section, skip sections with no meaningful news
-- Preserve all URLs exactly as received
-- Return ONLY valid JSON, no preamble, no markdown`;
+    : `You are a real estate intelligence analyst. Today is ${today}.
 
-  // Groq — Llama 3.3 70B (free, no billing needed)
+Analyze this news data and return ONLY valid JSON, no markdown, no preamble:
+${JSON.stringify(trimmed)}
+
+Return this exact structure:
+{
+  "section_digests": [
+    {"section":"...","summary":"1-2 sentences","items":[{"title":"...","summary":"1 sentence","source":"...","url":"..."}]}
+  ],
+  "global_radar": [{"player":"...","update":"1 sentence","url":"..."}],
+  "policy_alert": {"has_alert":false,"items":[]}
+}
+Rules: section items max 2 per section, skip empty sections, preserve URLs exactly. Set has_alert true only for urgent RERA/RBI/budget news.`;
+
+  // Wait 6 seconds between batches to respect TPM limits
+  await sleep(6000);
+
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -170,7 +148,7 @@ Rules:
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       temperature: 0.3,
-      max_tokens: 8192,
+      max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -187,9 +165,52 @@ Rules:
   try {
     return JSON.parse(clean);
   } catch {
-    console.error("JSON parse failed, raw output:", clean.substring(0, 500));
+    console.error("JSON parse failed:", clean.substring(0, 300));
     throw new Error("Groq returned invalid JSON");
   }
+}
+
+// ─── SYNTHESIZE — 3 BATCHED CALLS ────────────────────────────────────────────
+async function synthesizeDigest(rawResults) {
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Kolkata",
+  });
+
+  const toInputData = (buckets) =>
+    buckets.map((bucket) => ({
+      section:  bucket.label,
+      articles: (rawResults[bucket.label] || []).slice(0, 5).map((i) => ({
+        title:   i.title,
+        snippet: i.snippet,
+        source:  i.source,
+        url:     i.link,
+      })),
+    }));
+
+  console.log("  Calling Groq batch 1/3 (Indian market)...");
+  const b1 = await callGroq(toInputData(BATCHES[0]), today, true);
+
+  console.log("  Calling Groq batch 2/3 (launches, policy, regulation)...");
+  const b2 = await callGroq(toInputData(BATCHES[1]), today, false);
+
+  console.log("  Calling Groq batch 3/3 (capital, global, macro)...");
+  const b3 = await callGroq(toInputData(BATCHES[2]), today, false);
+
+  // Merge all three responses into one digest object
+  return {
+    date:             today,
+    headline_summary: b1.headline_summary || "",
+    top_stories:      b1.top_stories      || [],
+    market_pulse:     b1.market_pulse     || { tailwinds: [], headwinds: [] },
+    competitor_watch: b1.competitor_watch || [],
+    section_digests:  [
+      ...(b1.section_digests || []),
+      ...(b2.section_digests || []),
+      ...(b3.section_digests || []),
+    ],
+    global_radar:  b3.global_radar  || [],
+    policy_alert:  b2.policy_alert  || b3.policy_alert || { has_alert: false, items: [] },
+  };
 }
 
 // ─── HTML EMAIL BUILDER ──────────────────────────────────────────────────────
@@ -208,20 +229,18 @@ function buildEmailHTML(digest) {
   };
 
   const topStoriesHTML = (digest.top_stories || []).map((s) => `
-    <tr>
-      <td style="padding:16px;border-bottom:1px solid #f0f0f0;vertical-align:top;">
-        <span style="display:inline-block;background:${catColor(s.category)};color:#444;font-size:10px;padding:2px 8px;border-radius:10px;margin-bottom:6px;font-family:Arial,sans-serif;">${s.category || "Update"}</span>
-        <a href="${s.url}" style="display:block;font-size:15px;font-weight:600;color:#1a1a2e;text-decoration:none;margin-bottom:6px;font-family:Arial,sans-serif;line-height:1.4;">${s.headline}</a>
-        <p style="margin:0 0 6px;font-size:13px;color:#444;line-height:1.6;font-family:Arial,sans-serif;">${s.summary}</p>
-        <p style="margin:0;font-size:12px;color:#1976D2;font-family:Arial,sans-serif;"><strong>Why it matters:</strong> ${s.why_it_matters}</p>
-        <p style="margin:6px 0 0;font-size:11px;color:#999;font-family:Arial,sans-serif;">${s.source}</p>
-      </td>
-    </tr>`).join("");
+    <tr><td style="padding:16px;border-bottom:1px solid #f0f0f0;vertical-align:top;">
+      <span style="display:inline-block;background:${catColor(s.category)};color:#444;font-size:10px;padding:2px 8px;border-radius:10px;margin-bottom:6px;font-family:Arial,sans-serif;">${s.category || "Update"}</span>
+      <a href="${s.url}" style="display:block;font-size:15px;font-weight:600;color:#1a1a2e;text-decoration:none;margin-bottom:6px;font-family:Arial,sans-serif;line-height:1.4;">${s.headline}</a>
+      <p style="margin:0 0 6px;font-size:13px;color:#444;line-height:1.6;font-family:Arial,sans-serif;">${s.summary}</p>
+      <p style="margin:0;font-size:12px;color:#1976D2;font-family:Arial,sans-serif;"><strong>Why it matters:</strong> ${s.why_it_matters}</p>
+      <p style="margin:6px 0 0;font-size:11px;color:#999;font-family:Arial,sans-serif;">${s.source}</p>
+    </td></tr>`).join("");
 
   const sectionHTML = (digest.section_digests || []).map((sec) => `
-    <tr><td style="padding:12px 16px 4px;border-top:1px solid #eee;">
+    <tr><td style="padding:12px 16px 8px;border-top:1px solid #eee;">
       <p style="margin:0;font-size:12px;font-weight:700;color:#1a1a2e;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,sans-serif;">${sec.section}</p>
-      <p style="margin:4px 0 10px;font-size:13px;color:#555;line-height:1.5;font-family:Arial,sans-serif;">${sec.summary}</p>
+      <p style="margin:4px 0 8px;font-size:13px;color:#555;line-height:1.5;font-family:Arial,sans-serif;">${sec.summary}</p>
       ${(sec.items || []).map((item) => `
         <p style="margin:0 0 8px;padding-left:12px;border-left:3px solid #E0E0E0;font-family:Arial,sans-serif;">
           <a href="${item.url}" style="font-size:13px;color:#1565C0;text-decoration:none;font-weight:500;">${item.title}</a>
@@ -366,7 +385,7 @@ async function run() {
   const total = Object.values(rawResults).reduce((s, a) => s + a.length, 0);
   console.log(`\nTotal articles collected: ${total}`);
 
-  console.log("\nSynthesizing with Groq...");
+  console.log("\nSynthesizing with Groq (3 batches)...");
   const digest = await synthesizeDigest(rawResults);
   console.log(`  Top stories: ${digest.top_stories?.length || 0}`);
   console.log(`  Sections:    ${digest.section_digests?.length || 0}`);
