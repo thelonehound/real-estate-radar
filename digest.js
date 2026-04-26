@@ -12,7 +12,7 @@ const nodemailer = require("nodemailer");
 
 const CONFIG = {
   recipientEmail: "zubin.mistry@housing.com",
-  ccRecipients:   ["praveen.sharma@housing.com","aditya.raj1@housing.com","charu.kulshrestha@housing.com","aditya.mehandiratta@housing.com"],
+  ccRecipients:   ["zubin.mistry@housing.com"],
 
   senderEmail:    process.env.WORK_EMAIL_USER,
   senderPassword: process.env.WORK_EMAIL_APP_PASSWORD,
